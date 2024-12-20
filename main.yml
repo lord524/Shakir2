@@ -35,8 +35,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install flet  # تثبيت مكتبة flet
+        pip install PyQt5  # تثبيت مكتبة PyQt5
 
-    - name: Verify flet installation
+    - name: Verify flet and PyQt5 installation
       run: |
         if ! command -v flet &> /dev/null
         then
@@ -45,6 +46,8 @@ jobs:
         else
           flet --version  # التحقق من تثبيت مكتبة flet
         fi
+        
+        python -c "import PyQt5; print(PyQt5.__version__)"  # التحقق من تثبيت مكتبة PyQt5
 
     - name: Setup Flutter ${{ env.FLUTTER_VERSION }}
       uses: subosito/flutter-action@v2
