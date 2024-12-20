@@ -5,9 +5,9 @@ if sys.stdout.encoding != 'utf-8':
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel, QListWidget, QDialog, QGridLayout, QScrollArea, QFrame, QHBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QSpacerItem, QSizePolicy
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QPainter, QPainterPath, QColor, QFont
+from PySide2.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel, QListWidget, QDialog, QGridLayout, QScrollArea, QFrame, QTableWidget, QTableWidgetItem, QHeaderView, QSpacerItem, QSizePolicy)
+from PySide2.QtCore import Qt
+from PySide2.QtGui import QPixmap, QPainter, QPainterPath, QColor, QFont
 import pyodbc
 import os
 from datetime import datetime
@@ -20,15 +20,15 @@ class ProfileDialog(QDialog):
         self.setFont(QFont('Tahoma'))  # تغيير نوع الخط
         self.setWindowTitle('الملف الشخصي')
         self.setGeometry(200, 200, 400, 600)
-        
+
         # الحصول على أسماء الأعمدة العربية من النافذة الرئيسية
         self.column_names = parent.column_names if parent else {}
-        
+
         # إنشاء تخطيط رئيسي
         main_layout = QVBoxLayout()
         main_layout.setSpacing(5)  # تقليل التباعد العام
         main_layout.setContentsMargins(10, 10, 10, 10)  # تقليل الهوامش
-        
+
         # إضافة زر العودة
         back_button = QPushButton("العودة")
         back_button.setStyleSheet('''
@@ -46,7 +46,7 @@ class ProfileDialog(QDialog):
             }
         ''')
         back_button.clicked.connect(self.close)
-        
+
         # إطار الصورة
         image_frame = QFrame()
         image_frame.setStyleSheet('''
@@ -59,23 +59,18 @@ class ProfileDialog(QDialog):
         ''')
         image_layout = QVBoxLayout()
         image_layout.setAlignment(Qt.AlignCenter)
-        
+
         # إضافة الصورة
         image_label = QLabel()
         pixmap = self.load_image(record_data.get('ID', ''))
-        if 'Photo' in record_data:
-            try:
-                pixmap.loadFromData(record_data['Photo'])
-            except:
-                pass
-        
+
         # تحويل الصورة إلى شكل دائري
         size = 120
         rounded_pixmap = QPixmap(size, size)
         rounded_pixmap.fill(Qt.transparent)
-        
+
         scaled_pixmap = pixmap.scaled(size, size, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
-        
+
         painter = QPainter(rounded_pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
         path = QPainterPath()
@@ -83,15 +78,15 @@ class ProfileDialog(QDialog):
         painter.setClipPath(path)
         painter.drawPixmap(0, 0, scaled_pixmap)
         painter.end()
-        
+
         image_label.setPixmap(rounded_pixmap)
         image_label.setAlignment(Qt.AlignCenter)
         image_layout.addWidget(image_label)
-        
+
         # إضافة مسافة لتحريك الدائرة إلى اليمين
         spacer = QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         image_layout.addItem(spacer)  # إضافة المسافة قبل الدائرة
-        
+
         # إضافة دائرة صغيرة لتوضيح حالة الاتصال
         status_label = QLabel()  # إنشاء QLabel للدائرة
         if record_data.get('continue') == 'مستمر':  # تحقق من حالة الاتصال
@@ -100,9 +95,9 @@ class ProfileDialog(QDialog):
             status_label.setStyleSheet('background-color: red; border-radius: 10px;')  # دائرة حمراء
         status_label.setFixedSize(20, 20)  # تعيين حجم الدائرة
         image_layout.addWidget(status_label)  # إضافة الدائرة إلى التخطيط
-        
+
         image_frame.setLayout(image_layout)
-        
+
         # إطار المعلومات
         info_frame = QFrame()
         info_frame.setStyleSheet('''
@@ -112,7 +107,7 @@ class ProfileDialog(QDialog):
                 padding: 5px;  # تقليل الحشو الداخلي
             }
         ''')
-        
+
         # إنشاء جدول للمعلومات
         table = QTableWidget()
         table.setColumnCount(2)
@@ -132,60 +127,48 @@ class ProfileDialog(QDialog):
                 color: #3498db;  /* لون أزرق للنص عند تحديد الخلية */
             }
         ''')
-        
+
         # إخفاء رأس الجدول
         table.horizontalHeader().setVisible(False)
         table.verticalHeader().setVisible(False)
-        
+
         # إضافة البيانات للجدول
         filtered_data = [(k, v) for k, v in record_data.items() if k != 'Photo']
         table.setRowCount(len(filtered_data))
         print(f'عدد السجلات: {len(filtered_data)}')  # رسالة تسجيل عدد السجلات
-        
+
         for i, (key, value) in enumerate(filtered_data):
             # استخدام الاسم العربي إذا كان متوفراً
             arabic_key = self.column_names.get(key, key)
-            if key == 'Phone':  # إذا كان العمود هو رقم الهاتف
-                if isinstance(value, str) and value.isdigit() and len(value) >= 7:  # تحقق من أن القيمة رقمية وطولها مناسب
-                    phone_label = QLabel(f'<a href="tel:{value}">{value}</a>')
-                    phone_label.setTextInteractionFlags(Qt.TextBrowserInteraction)  # السماح بالتفاعل مع النص
-                    phone_label.setOpenExternalLinks(True)  # السماح بفتح الروابط
-                    phone_label.setStyleSheet('font-size: 16px; text-align: right;')  # تكبير حجم الخط ومحاذاة النص لليمين
-                    table.setCellWidget(i, 1, phone_label)  # تعيين QLabel في الخلية المناسبة
-                else:
-                    phone_label = QLabel('رقم هاتف غير صالح')  # في حال كانت القيمة غير صالحة
-                    phone_label.setStyleSheet('font-size: 16px; text-align: right;')  # تكبير حجم الخط ومحاذاة النص لليمين
-                    table.setCellWidget(i, 1, phone_label)  # تعيين QLabel في الخلية المناسبة
-            else:
-                key_item = QTableWidgetItem(str(arabic_key))
-                value_item = QTableWidgetItem(str(value))
-                
-                # تعيين محاذاة النص إلى اليسار
-                key_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-                value_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-                
-                # تنسيق العناوين
-                key_item.setBackground(QColor('#e8f5e9'))  # لون أخضر فاتح
-                key_item.setFont(QFont('Arial', 12, QFont.Bold))  # تعيين خط يدعم الكتابة العربية
-                value_item.setFont(QFont('Arial', 12))  # تعيين خط يدعم الكتابة العربية
-                key_item.setFlags(key_item.flags() & ~Qt.ItemIsEditable)  # جعل العناوين غير قابلة للتحرير
-                
-                table.setItem(i, 0, key_item)
-                table.setItem(i, 1, value_item)
-        
+            key_item = QTableWidgetItem(str(arabic_key))
+            value_item = QTableWidgetItem(str(value))
+
+            # تعيين محاذاة النص إلى اليسار
+            key_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            value_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
+            # تنسيق العناوين
+            key_item.setBackground(QColor('#e8f5e9'))  # لون أخضر فاتح
+            key_item.setFont(QFont('Arial', 12, QFont.Bold))  # تعيين خط يدعم الكتابة العربية
+            value_item.setFont(QFont('Arial', 12))  # تعيين خط يدعم الكتابة العربية
+            key_item.setFlags(key_item.flags() & ~Qt.ItemIsEditable)  # جعل العناوين غير قابلة للتحرير
+
+            table.setItem(i, 0, key_item)
+            table.setItem(i, 1, value_item)
+
         # تعديل حجم الأعمدة
         table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        
+
         # تعطيل إمكانية تحديد النص في الجدول
         table.setSelectionBehavior(QTableWidget.SelectRows)  # تحديد الصفوف
         table.setEditTriggers(QTableWidget.NoEditTriggers)  # تعطيل التحرير
-        
+
         # إضافة الجدول إلى إطار المعلومات
         info_layout = QVBoxLayout()
         info_layout.addWidget(table)
         info_frame.setLayout(info_layout)
-        
+
         # منطقة التمرير
         scroll_area = QScrollArea()
         scroll_area.setWidget(info_frame)
@@ -210,24 +193,14 @@ class ProfileDialog(QDialog):
                 background-color: #555;
             }
         ''')
-        
+
         # إضافة كل شيء إلى التخطيط الرئيسي
         main_layout.addWidget(back_button)
         main_layout.addWidget(image_frame)
         main_layout.addWidget(scroll_area)
-        
-        phone_number = record_data.get('Phone', '')
-        if isinstance(phone_number, str) and phone_number.isdigit():  # التأكد من أن القيمة رقمية
-            phone_label = QLabel(f'<a href="tel:{phone_number}">{phone_number}</a>')
-            phone_label.setTextInteractionFlags(Qt.TextBrowserInteraction)  # السماح بالتفاعل مع النص
-            phone_label.setOpenExternalLinks(True)  # السماح بفتح الروابط
-            phone_label.setTextFormat(Qt.RichText)  # السماح بعرض النص بتنسيق HTML
-        else:
-            phone_label = QLabel('الهاتف: غير متوفر')  # في حال لم تكن القيمة رقمية
-        main_layout.addWidget(phone_label)
-        
+
         self.setLayout(main_layout)
-        
+
         self.setStyleSheet('''
             QDialog {
                 background-color: #ffffff;
@@ -255,21 +228,24 @@ class DatabaseApp(QMainWindow):
         self.setLayoutDirection(Qt.RightToLeft)
         self.full_records = {}
         self.column_names = {}  # قاموس لتخزين أسماء الأعمدة العربية
-        
+
         # تعيين أسماء الأعمدة العربية
         self.load_arabic_column_names()
-        
+
         # إنشاء الواجهة الرئيسية
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignRight)
         main_widget.setLayout(layout)
-        
+
         # عنوان التطبيق
         title_label = QLabel('تطبيق قاعدة البيانات')
         title_label.setStyleSheet('font-size: 24px; margin: 10px;')
         title_label.setAlignment(Qt.AlignRight)
+
+   
+
         
         # حقل البحث
         self.search_input = QLineEdit()
