@@ -1,0 +1,6 @@
+sys
+PyQt5
+pyodbc
+os
+io
+datetime
