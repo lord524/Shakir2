@@ -34,7 +34,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install flet  # تأكد من تثبيت مكتبة flet هنا
+        pip install flet  # تثبيت مكتبة flet
+
+    - name: Verify flet installation
+      run: |
+        flet --version  # التحقق من تثبيت مكتبة flet
 
     - name: Setup Flutter ${{ env.FLUTTER_VERSION }}
       uses: subosito/flutter-action@v2
@@ -64,9 +68,9 @@ jobs:
       with:
         name: apk-build-artifact
         path: build/apk
-
-        if-no-files-found: warn
-        overwrite: false
+      if-no-files-found: warn
+      overwrite: false
 
     - name: Clean Up
       run: flutter clean
+
